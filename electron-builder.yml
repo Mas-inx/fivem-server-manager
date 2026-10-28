@@ -1,0 +1,37 @@
+appId: com.fivem-server-manager.app
+productName: FiveM Server Manager
+copyright: Copyright © 2026 FiveM Server Manager contributors
+
+directories:
+  buildResources: resources
+  output: dist
+
+files:
+  - out/**
+  - resources/icon.png
+  - resources/tray.png
+  - resources/tray@2x.png
+  - package.json
+  - '!**/*.map'
+
+asarUnpack:
+  - resources/**
+
+win:
+  executableName: FiveM Server Manager
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: FiveM Server Manager
+  artifactName: FiveM-Server-Manager-${version}-Setup.${ext}
+  uninstallDisplayName: FiveM Server Manager
+
+publish: null
