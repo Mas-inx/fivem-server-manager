@@ -1,7 +1,7 @@
 {
   "name": "fivem-server-manager",
   "productName": "FiveM Server Manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Run, manage and duplicate multiple FiveM servers on one Windows machine.",
   "main": "./out/main/index.js",
   "author": "FiveM Server Manager contributors",
