@@ -1,4 +1,4 @@
-import { Database, LayoutGrid, Package, Plus, Settings } from 'lucide-react'
+import { Database, LayoutGrid, Package, Plus, Settings, ShieldCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router'
 import { StatusDot } from '@/components/status'
@@ -60,6 +60,9 @@ export function Sidebar() {
           trailing={db && (db.installed || db.mode === 'external') ? <StatusDot status={dbState} className="mr-0.5" /> : null}
         >
           Database
+        </Item>
+        <Item to="/admins" icon={<ShieldCheck size={15} strokeWidth={1.75} />}>
+          Admins
         </Item>
       </nav>
 

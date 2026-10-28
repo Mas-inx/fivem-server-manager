@@ -1,6 +1,7 @@
 import * as Popover from '@radix-ui/react-popover'
 import { ArrowLeft, ArrowRight, ExternalLink, KeyRound, LayoutPanelLeft, RotateCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import type { ServerConfig, ServerRuntime } from '@shared/types'
 import { isLive, useServerControl } from '@/components/server-actions'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,7 @@ interface WebviewEl extends HTMLElement {
 }
 
 /** Signs in with the account seeded through TXHOST_DEFAULT_ACCOUNT so the panel opens ready to use. */
-function autoLoginScript(username: string, password: string): string {
+function autoLoginScript(username: string, password: string, next: string): string {
   return `(async () => {
     if (!location.pathname.startsWith('/login')) return 'skip';
     const res = await fetch('/auth/password', {
@@ -29,7 +30,7 @@ function autoLoginScript(username: string, password: string): string {
       body: JSON.stringify(${JSON.stringify({ username, password })})
     });
     const data = await res.json().catch(() => ({}));
-    if (data && !data.error) { location.href = '/'; return 'ok'; }
+    if (data && !data.error) { location.href = ${JSON.stringify(next)}; return 'ok'; }
     return 'failed';
   })()`
 }
@@ -75,7 +76,10 @@ export function TxAdminTab({ server, runtime }: { server: ServerConfig; runtime:
   const [url, setUrl] = useState('')
   const [nav, setNav] = useState({ back: false, forward: false })
   const [loading, setLoading] = useState(true)
+  const [params] = useSearchParams()
   const base = `http://127.0.0.1:${server.txAdminPort}`
+  // Other tabs can deep-link into the panel, e.g. ?to=/server/console for the Live Console.
+  const startPath = params.get('to')?.startsWith('/') ? params.get('to')! : '/'
   const ready = runtime?.txAdminOnline
   const live = isLive(runtime)
 
@@ -92,7 +96,7 @@ export function TxAdminTab({ server, runtime }: { server: ServerConfig; runtime:
         setNav({ back: wv.canGoBack(), forward: wv.canGoForward() })
         if (server.txAdmin && !triedLogin && new URL(current).pathname.startsWith('/login')) {
           triedLogin = true
-          void wv.executeJavaScript(autoLoginScript(server.txAdmin.username, server.txAdmin.password)).catch(() => undefined)
+          void wv.executeJavaScript(autoLoginScript(server.txAdmin.username, server.txAdmin.password, startPath)).catch(() => undefined)
         }
       } catch {
         /* not attached yet */
@@ -114,7 +118,7 @@ export function TxAdminTab({ server, runtime }: { server: ServerConfig; runtime:
       wv.removeEventListener('did-navigate-in-page', sync)
       wv.removeEventListener('did-start-loading', onStart)
     }
-  }, [ready, server.txAdmin])
+  }, [ready, server.txAdmin, startPath])
 
   if (!live) {
     return (
@@ -177,7 +181,7 @@ export function TxAdminTab({ server, runtime }: { server: ServerConfig; runtime:
           </Tooltip>
         </div>
       </div>
-      <webview ref={ref} src={base} partition={`persist:txadmin-${server.id}`} className="min-h-0 flex-1 bg-panel" />
+      <webview ref={ref} src={base + startPath} partition={`persist:txadmin-${server.id}`} className="min-h-0 flex-1 bg-panel" />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { HashRouter, Route, Routes, useNavigate } from 'react-router'
 import { CommandPalette } from '@/components/command-palette'
+import { AdminDialog } from '@/components/dialogs/admin'
 import { DeleteServerDialog } from '@/components/dialogs/delete-server'
 import { DuplicateServerDialog } from '@/components/dialogs/duplicate-server'
 import { ImportServerDialog } from '@/components/dialogs/import-server'
@@ -10,6 +11,7 @@ import { TitleBar } from '@/components/layout/titlebar'
 import { Toaster } from '@/components/ui/toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { api } from '@/lib/utils'
+import { AdminsPage } from '@/pages/admins'
 import { ArtifactsPage } from '@/pages/artifacts'
 import { DatabasePage } from '@/pages/database'
 import { OnboardingPage } from '@/pages/onboarding'
@@ -51,6 +53,7 @@ function Shell() {
               <Route path="/servers/:id/:tab" element={<ServerPage />} />
               <Route path="/artifacts" element={<ArtifactsPage />} />
               <Route path="/database" element={<DatabasePage />} />
+              <Route path="/admins" element={<AdminsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           )}
@@ -60,6 +63,7 @@ function Shell() {
       <ImportServerDialog />
       <DuplicateServerDialog />
       <DeleteServerDialog />
+      <AdminDialog />
       <CommandPalette />
       <Toaster />
     </div>

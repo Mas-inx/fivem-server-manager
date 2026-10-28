@@ -32,6 +32,10 @@ export interface ServerConfig {
   /** txAdmin only: txData location when it lives outside `root` (imported servers). */
   txDataPath: string | null
   txAdmin: TxAdminAccount | null
+  /** Applies universal admins and the shared config to this server. */
+  shared: boolean
+  /** txAdmin account names the manager added, so removed admins can be cleaned up. */
+  syncedAdmins: string[]
   notes: string
   createdAt: number
   lastStartedAt: number | null
@@ -146,6 +150,11 @@ export interface AppSettings {
   closeToTray: boolean
   confirmStop: boolean
   db: DbSettings
+  admins: UniversalAdmin[]
+  /** Principals universal admins are added to, separated by spaces. */
+  adminPrincipals: string
+  /** cfg lines executed by every server after its own server.cfg. */
+  sharedConfig: string
   onboarded: boolean
 }
 
@@ -255,4 +264,40 @@ export interface ServerPatch {
   launchArgs?: string
   notes?: string
   txAdmin?: TxAdminAccount | null
+  shared?: boolean
 }
+
+export type UpdateStatus = 'idle' | 'unsupported' | 'checking' | 'up-to-date' | 'downloading' | 'ready' | 'error'
+
+export interface UpdateState {
+  status: UpdateStatus
+  /** The version running now. */
+  current: string
+  /** The newer version found, while it downloads and once it is ready to install. */
+  version?: string
+  /** Download progress, 0..1. */
+  progress?: number
+  /** Release notes as plain text. */
+  notes?: string
+  error?: string
+  /** When the last check finished (ms). */
+  checkedAt?: number
+}
+
+export type ResourceAction = 'refresh' | 'restart' | 'start' | 'stop' | 'ensure'
+
+/** Someone who is an admin on every server that uses the shared settings. */
+export interface UniversalAdmin {
+  id: string
+  /** Display name, also used as their txAdmin username. */
+  name: string
+  /** Player identifiers such as fivem:123, license:abc, discord:123, steam:1100001… */
+  identifiers: string[]
+  /** In-game permissions through add_principal in the managed config. */
+  ace: boolean
+  /** An account in txAdmin's panel on txAdmin servers (needs a fivem: or discord: identifier). */
+  panel: boolean
+}
+
+export const IDENTIFIER_PATTERN = /^(fivem|license2?|discord|steam|xbl|live):[A-Za-z0-9]+$/
+export const TXADMIN_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{1,18}[A-Za-z0-9]$/

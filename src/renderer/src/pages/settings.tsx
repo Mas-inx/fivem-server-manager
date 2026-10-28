@@ -7,8 +7,9 @@ import { Input, SecretInput } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { SettingRow, Switch } from '@/components/ui/switch'
 import { attempt, toast } from '@/components/ui/toast'
+import { installUpdate, RELEASES_URL } from '@/components/update-pill'
 import { useAsync } from '@/lib/hooks'
-import { api } from '@/lib/utils'
+import { api, relativeTime } from '@/lib/utils'
 import { useApp } from '@/store/app'
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -17,6 +18,44 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
       <h2 className="mb-1 text-[13px] font-medium text-fg">{title}</h2>
       <div className="divide-y divide-line border-y border-line">{children}</div>
     </section>
+  )
+}
+
+function UpdatesRow() {
+  const update = useApp((s) => s.update)
+  const [checking, setChecking] = useState(false)
+  const status = update?.status ?? 'idle'
+  const description = {
+    idle: 'Updates are checked every few hours.',
+    unsupported: 'Development builds do not update themselves. Installed copies do.',
+    checking: 'Checking GitHub for a new version.',
+    'up-to-date': `You are on the latest version${update?.checkedAt ? `, checked ${relativeTime(update.checkedAt).toLowerCase()}` : ''}.`,
+    downloading: `Downloading ${update?.version ?? 'the update'}${update?.progress !== undefined ? ` · ${Math.round(update.progress * 100)}%` : ''}.`,
+    ready: `Version ${update?.version} is downloaded and installs on restart.`,
+    error: update?.error ?? 'The last check failed.'
+  }[status]
+  return (
+    <SettingRow title="Updates" description={<span className={status === 'error' ? 'text-err' : undefined}>{description}</span>}>
+      {status === 'ready' ? (
+        <Button variant="primary" onClick={() => void installUpdate()}>
+          Restart and update
+        </Button>
+      ) : (
+        <Button
+          loading={checking || status === 'checking' || status === 'downloading'}
+          disabled={status === 'unsupported'}
+          onClick={async () => {
+            setChecking(true)
+            const next = await api.updates.check()
+            setChecking(false)
+            if (next.status === 'up-to-date') toast({ kind: 'success', title: `${next.current} is the latest version` })
+            else if (next.status === 'error') toast({ kind: 'error', title: 'Could not check for updates', description: next.error })
+          }}
+        >
+          Check for updates
+        </Button>
+      )}
+    </SettingRow>
   )
 }
 
@@ -102,11 +141,15 @@ export function SettingsPage() {
       <Group title="About">
         <SettingRow title="FiveM Server Manager" description={info.data ? `Version ${info.data.version} · Electron ${info.data.electron}` : ' '}>
           <div className="flex gap-1.5">
+            <Button variant="ghost" onClick={() => void api.app.openExternal(RELEASES_URL)}>
+              Releases
+            </Button>
             <Button variant="ghost" onClick={() => info.data && void api.app.openPath(info.data.userData)}>
               App data
             </Button>
           </div>
         </SettingRow>
+        <UpdatesRow />
       </Group>
     </Page>
   )

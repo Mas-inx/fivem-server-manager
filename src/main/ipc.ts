@@ -3,6 +3,8 @@ import { spawn } from 'node:child_process'
 import type { AppSettings } from '@shared/types'
 import { store } from './store'
 import { tasks } from './tasks'
+import { lifecycle } from './lifecycle'
+import { checkForUpdates, installUpdate, updateState } from './updater'
 import { errorMessage } from './util'
 import { artifacts } from './services/artifacts'
 import { database } from './services/database'
@@ -87,6 +89,9 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
       if (before.db.mode === 'managed' && next.db.mode === 'external') await database.stop()
       void database.probe()
     }
+    if (patch.admins || patch.adminPrincipals !== undefined || patch.sharedConfig !== undefined) {
+      void runner.applySharedEverywhere()
+    }
     return next
   })
 
@@ -120,6 +125,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   handle('servers:setResourceEnsured', (id: string, name: string, ensured: boolean) =>
     servers.setResourceEnsured(id, name, ensured)
   )
+  handle('servers:resourceAction', (id: string, action, name?: string) => runner.resourceAction(id, action, name))
   handle('servers:suggestPorts', () => suggestPorts())
   handle('servers:checkPorts', (ports: number[], excludeId?: string) => checkPorts(ports, excludeId))
   handle('servers:connectionString', (id: string) => servers.connectionString(id))
@@ -142,6 +148,11 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   handle('db:test', (conn) => database.test(conn))
   handle('db:openHeidi', (name?: string) => database.openHeidi(name))
   handle('db:logs', () => database.getLogs())
+
+  // Updates
+  handle('updates:state', () => updateState())
+  handle('updates:check', () => checkForUpdates())
+  handle('updates:install', () => installUpdate(() => (lifecycle.quitting = true)))
 
   // Tasks
   handle('tasks:list', () => tasks.list())

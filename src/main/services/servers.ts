@@ -21,6 +21,7 @@ import { database } from './database'
 import { suggestPorts } from './ports'
 import { runner } from './runner'
 import { safeResolve, serverFiles, txProfiles, txServerPaths } from './server-files'
+import { applyShared, syncTxAdmins } from './shared'
 
 const CFX_SERVER_DATA = 'https://github.com/citizenfx/cfx-server-data/archive/refs/heads/master.zip'
 const WEEK = 7 * 24 * 60 * 60 * 1000
@@ -167,6 +168,8 @@ class Servers {
         dataPath: null,
         txDataPath: null,
         txAdmin: null,
+        shared: true,
+        syncedAdmins: [],
         notes: '',
         createdAt: Date.now(),
         lastStartedAt: null
@@ -279,6 +282,8 @@ class Servers {
         dataPath,
         txDataPath,
         txAdmin: null,
+        shared: true,
+        syncedAdmins: [],
         notes: '',
         createdAt: Date.now(),
         lastStartedAt: null
@@ -388,6 +393,10 @@ class Servers {
     }
     const updated = store.updateServer(id, { ...patch, name: patch.name?.trim() ?? server.name })
     await syncStandaloneCfg(updated).catch(() => undefined)
+    if (patch.shared !== undefined) {
+      await applyShared(updated).catch(() => false)
+      if (!runner.isRunning(id)) await syncTxAdmins(updated).catch(() => undefined)
+    }
     return updated
   }
 

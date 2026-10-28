@@ -1,10 +1,10 @@
-import { Boxes, FolderOpen, RefreshCw, Search } from 'lucide-react'
+import { Boxes, FolderOpen, RefreshCw, RotateCw, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ResourceInfo, ServerConfig, ServerRuntime } from '@shared/types'
 import { Panel } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { EmptyState } from '@/components/ui/misc'
+import { EmptyState, Spinner } from '@/components/ui/misc'
 import { Segmented } from '@/components/ui/segmented'
 import { Switch } from '@/components/ui/switch'
 import { attempt, toast } from '@/components/ui/toast'
@@ -19,6 +19,10 @@ export function ResourcesTab({ server, runtime }: { server: ServerConfig; runtim
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [pending, setPending] = useState<Record<string, boolean>>({})
+  const [refreshing, setRefreshing] = useState(false)
+
+  // Commands reach a standalone server through its console and a txAdmin server through txAdmin.
+  const live = runtime?.status === 'running' && (server.mode === 'standalone' || !!runtime.gameOnline)
 
   const list = res.data ?? []
   const shown = useMemo(() => {
@@ -39,19 +43,39 @@ export function ResourcesTab({ server, runtime }: { server: ServerConfig; runtim
     return [...map.entries()]
   }, [shown])
 
+  const busy = (name: string, value: boolean): void => setPending((p) => ({ ...p, [name]: value }))
+
   const toggle = async (r: ResourceInfo, on: boolean): Promise<void> => {
-    setPending((p) => ({ ...p, [r.name]: true }))
+    busy(r.name, true)
     const ok = await attempt(() => api.servers.setResourceEnsured(server.id, r.name, on), 'Could not update server.cfg')
     if (ok) {
-      // Standalone servers take the change immediately; txAdmin servers pick it up on restart.
-      const live = runtime?.status === 'running' && server.mode === 'standalone'
-      if (live) await api.servers.command(server.id, on ? `ensure ${r.name}` : `stop ${r.name}`).catch(() => undefined)
-      else if (runtime?.status === 'running') {
-        toast({ kind: 'info', title: `${r.name} ${on ? 'enabled' : 'disabled'}`, description: 'Restart the server to apply it.' })
+      if (live) {
+        await attempt(() => api.servers.resourceAction(server.id, on ? 'ensure' : 'stop', r.name), `Could not ${on ? 'start' : 'stop'} ${r.name}`)
+      } else if (runtime?.status === 'running') {
+        toast({ kind: 'info', title: `${r.name} ${on ? 'enabled' : 'disabled'}`, description: 'It applies when the game server next starts.' })
       }
       res.reload()
     }
-    setPending((p) => ({ ...p, [r.name]: false }))
+    busy(r.name, false)
+  }
+
+  const restart = async (r: ResourceInfo): Promise<void> => {
+    busy(r.name, true)
+    const ok = await attempt(() => api.servers.resourceAction(server.id, 'restart', r.name), `Could not restart ${r.name}`)
+    busy(r.name, false)
+    if (ok) toast({ kind: 'success', title: `${r.name} restarted` })
+  }
+
+  const refresh = async (): Promise<void> => {
+    setRefreshing(true)
+    if (live) await attempt(() => api.servers.resourceAction(server.id, 'refresh'), 'Could not refresh resources')
+    res.reload()
+    setRefreshing(false)
+    toast({
+      kind: 'success',
+      title: 'Resources refreshed',
+      description: live ? 'The server picked up new and changed resource manifests.' : undefined
+    })
   }
 
   if (!res.loading && !list.length) {
@@ -65,7 +89,11 @@ export function ResourcesTab({ server, runtime }: { server: ServerConfig; runtim
             ? 'Resources appear once txAdmin has deployed the server.'
             : 'Drop resource folders into server-data/resources and they will show up here.'
         }
-      />
+      >
+        <Button icon={<RefreshCw size={13} strokeWidth={1.75} />} onClick={() => res.reload()}>
+          Scan again
+        </Button>
+      </EmptyState>
     )
   }
 
@@ -94,8 +122,10 @@ export function ResourcesTab({ server, runtime }: { server: ServerConfig; runtim
           <span className="mr-2 text-xs text-fg-subtle tabular">
             {enabled} of {list.length} enabled
           </span>
-          <Tooltip content="Rescan">
-            <Button variant="ghost" square onClick={() => res.reload()} icon={<RefreshCw size={14} strokeWidth={1.75} />} />
+          <Tooltip content={live ? 'Rescan the folder and run refresh on the server' : 'Rescan the resources folder'}>
+            <Button loading={refreshing} onClick={() => void refresh()} icon={<RefreshCw size={13} strokeWidth={1.75} />}>
+              Refresh
+            </Button>
           </Tooltip>
         </div>
 
@@ -107,18 +137,31 @@ export function ResourcesTab({ server, runtime }: { server: ServerConfig; runtim
                 <span className="text-xs text-fg-subtle tabular">{items.length}</span>
               </div>
               {items.map((r) => (
-                <div key={r.path} className="group flex h-11 items-center gap-3 border-b border-line px-4 last:border-0 hover:bg-hover">
+                <div key={r.path} className="group flex h-11 items-center gap-2 border-b border-line px-4 last:border-0 hover:bg-hover">
                   <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-fg">{r.name}</span>
-                  {r.viaCategory && <span className="text-xs text-fg-subtle">Started by {r.viaCategory}</span>}
+                  {r.viaCategory && <span className="mr-2 text-xs text-fg-subtle">Started by {r.viaCategory}</span>}
+                  {pending[r.name] && <Spinner size={12} className="mr-1 text-fg-subtle" />}
                   <Tooltip content="Open folder">
                     <button
                       onClick={() => void api.app.openPath(r.path)}
-                      className="flex h-6 w-6 items-center justify-center rounded-[5px] text-fg-faint opacity-0 group-hover:opacity-100 hover:bg-hover hover:text-fg"
+                      className="flex h-7 w-7 items-center justify-center rounded-[6px] text-fg-faint opacity-0 group-hover:opacity-100 hover:bg-hover hover:text-fg"
                     >
                       <FolderOpen size={13} strokeWidth={1.75} />
                     </button>
                   </Tooltip>
+                  {live && r.ensured && (
+                    <Tooltip content={`Restart ${r.name}`}>
+                      <button
+                        disabled={pending[r.name]}
+                        onClick={() => void restart(r)}
+                        className="flex h-7 w-7 items-center justify-center rounded-[6px] text-fg-faint opacity-0 group-hover:opacity-100 hover:bg-hover hover:text-fg disabled:opacity-40"
+                      >
+                        <RotateCw size={13} strokeWidth={1.75} />
+                      </button>
+                    </Tooltip>
+                  )}
                   <Switch
+                    className="ml-1"
                     checked={r.ensured}
                     disabled={!!r.viaCategory || pending[r.name]}
                     onChange={(on) => void toggle(r, on)}

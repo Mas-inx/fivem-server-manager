@@ -1,5 +1,6 @@
 import { ArrowDown, Clock, Eraser, FolderOpen, Search } from 'lucide-react'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import type { LogLine, ServerConfig, ServerRuntime } from '@shared/types'
 import { isLive } from '@/components/server-actions'
 import { Button } from '@/components/ui/button'
@@ -109,6 +110,7 @@ export function ConsoleTab({ server, runtime }: { server: ServerConfig; runtime:
   const [command, setCommand] = useState('')
   const [cursor, setCursor] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
   const live = isLive(runtime)
 
   useEffect(() => {
@@ -196,28 +198,35 @@ export function ConsoleTab({ server, runtime }: { server: ServerConfig; runtime:
         </div>
       )}
 
-      <div
-        className="flex h-12 shrink-0 items-center gap-2.5 border-t border-line bg-panel px-5"
-        onClick={() => inputRef.current?.focus()}
-      >
-        <span className={cn('font-mono text-[13px]', live ? 'text-fg-muted' : 'text-fg-faint')}>›</span>
-        <input
-          ref={inputRef}
-          value={command}
-          disabled={!live}
-          onChange={(e) => setCommand(e.target.value)}
-          onKeyDown={onKeyDown}
-          spellCheck={false}
-          placeholder={
-            !live
-              ? 'Server is not running'
-              : server.mode === 'txadmin'
-                ? 'Send a command to the server (txAdmin Live Console also works)'
-                : 'Type a command, for example: refresh, ensure chat, status'
-          }
-          className="h-full flex-1 bg-transparent font-mono text-[12.5px] text-fg placeholder:font-sans placeholder:text-[13px] placeholder:text-fg-faint focus-visible:outline-none disabled:cursor-not-allowed"
-        />
-      </div>
+      {server.mode === 'txadmin' ? (
+        <div className="flex h-12 shrink-0 items-center justify-between gap-4 border-t border-line bg-panel px-5">
+          <span className="text-[13px] text-fg-subtle">txAdmin servers take commands in txAdmin's Live Console.</span>
+          <Button
+            size="sm"
+            disabled={!live}
+            onClick={() => navigate(`/servers/${server.id}/txadmin?to=${encodeURIComponent('/server/console')}`)}
+          >
+            Open Live Console
+          </Button>
+        </div>
+      ) : (
+        <div
+          className="flex h-12 shrink-0 items-center gap-2.5 border-t border-line bg-panel px-5"
+          onClick={() => inputRef.current?.focus()}
+        >
+          <span className={cn('font-mono text-[13px]', live ? 'text-fg-muted' : 'text-fg-faint')}>›</span>
+          <input
+            ref={inputRef}
+            value={command}
+            disabled={!live}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyDown={onKeyDown}
+            spellCheck={false}
+            placeholder={live ? 'Type a command, for example: refresh, ensure chat, status' : 'Server is not running'}
+            className="h-full flex-1 bg-transparent font-mono text-[12.5px] text-fg placeholder:font-sans placeholder:text-[13px] placeholder:text-fg-faint focus-visible:outline-none disabled:cursor-not-allowed"
+          />
+        </div>
+      )}
     </div>
   )
 }

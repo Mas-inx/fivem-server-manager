@@ -1,6 +1,7 @@
 import * as Popover from '@radix-ui/react-popover'
 import { CircleAlert, Search, X } from 'lucide-react'
 import { Logo } from '@/components/logo'
+import { UpdatePill } from '@/components/update-pill'
 import { Kbd, Progress, Spinner } from '@/components/ui/misc'
 import { api, cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
@@ -85,8 +86,9 @@ export function TitleBar() {
           <span className="flex-1 truncate text-left">Search servers and actions</span>
           <Kbd>Ctrl K</Kbd>
         </button>
-        <div className="flex min-w-0 flex-1 justify-end pl-3">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 pl-3">
           <Tasks />
+          <UpdatePill />
         </div>
       </div>
     </header>

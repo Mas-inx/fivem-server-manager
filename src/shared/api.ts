@@ -15,13 +15,15 @@ import type {
   Platform,
   PlayerInfo,
   PortCheck,
+  ResourceAction,
   ResourceInfo,
   ServerConfig,
   ServerFiles,
   ServerPatch,
   ServerRuntime,
   TaskInfo,
-  ToastEvent
+  ToastEvent,
+  UpdateState
 } from './types'
 
 export type Unsubscribe = () => void
@@ -65,6 +67,8 @@ export interface Api {
     writeFile(id: string, path: string, content: string): Promise<void>
     resources(id: string): Promise<ResourceInfo[]>
     setResourceEnsured(id: string, name: string, ensured: boolean): Promise<void>
+    /** Runs refresh, start, stop, ensure or restart on a running server (stdin or the txAdmin API). */
+    resourceAction(id: string, action: ResourceAction, name?: string): Promise<void>
     suggestPorts(): Promise<{ gamePort: number; txAdminPort: number }>
     checkPorts(ports: number[], excludeId?: string): Promise<PortCheck[]>
     connectionString(id: string): Promise<string | null>
@@ -88,6 +92,13 @@ export interface Api {
     openHeidi(database?: string): Promise<void>
     logs(): Promise<LogLine[]>
   }
+  updates: {
+    state(): Promise<UpdateState>
+    /** Checks GitHub now; a newer version then downloads in the background. */
+    check(): Promise<UpdateState>
+    /** Restarts into the downloaded version. False when nothing is ready. */
+    install(): Promise<boolean>
+  }
   tasks: {
     list(): Promise<TaskInfo[]>
     dismiss(id: string): Promise<void>
@@ -101,6 +112,7 @@ export interface Api {
     settings(cb: (settings: AppSettings) => void): Unsubscribe
     toast(cb: (toast: ToastEvent) => void): Unsubscribe
     navigate(cb: (path: string) => void): Unsubscribe
+    update(cb: (state: UpdateState) => void): Unsubscribe
   }
 }
 

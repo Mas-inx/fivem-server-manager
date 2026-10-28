@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "electron-updater": "^6.8.11",
     "extract-zip": "^2.0.1",
     "mysql2": "^3.24.6"
   },

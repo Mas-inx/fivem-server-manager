@@ -53,6 +53,7 @@ const api: Api = {
     writeFile: (id, path, content) => call('servers:writeFile', id, path, content),
     resources: (id) => call('servers:resources', id),
     setResourceEnsured: (id, name, ensured) => call('servers:setResourceEnsured', id, name, ensured),
+    resourceAction: (id, action, name) => call('servers:resourceAction', id, action, name),
     suggestPorts: () => call('servers:suggestPorts'),
     checkPorts: (ports, excludeId) => call('servers:checkPorts', ports, excludeId),
     connectionString: (id) => call('servers:connectionString', id)
@@ -76,6 +77,11 @@ const api: Api = {
     openHeidi: (database) => call('db:openHeidi', database),
     logs: () => call('db:logs')
   },
+  updates: {
+    state: () => call('updates:state'),
+    check: () => call('updates:check'),
+    install: () => call('updates:install')
+  },
   tasks: {
     list: () => call('tasks:list'),
     dismiss: (id) => call('tasks:dismiss', id)
@@ -88,7 +94,8 @@ const api: Api = {
     db: (cb) => subscribe('event:db', cb),
     settings: (cb) => subscribe('event:settings', cb),
     toast: (cb) => subscribe('event:toast', cb),
-    navigate: (cb) => subscribe('event:navigate', cb)
+    navigate: (cb) => subscribe('event:navigate', cb),
+    update: (cb) => subscribe('event:update', cb)
   }
 }
 

@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createWriteStream, existsSync, promises as fs, type WriteStream } from 'node:fs'
 import { join } from 'node:path'
 import { hashSync } from 'bcryptjs'
-import type { LogLine, PlayerInfo, ServerConfig, ServerRuntime } from '@shared/types'
+import type { LogLine, PlayerInfo, ResourceAction, ServerConfig, ServerRuntime } from '@shared/types'
 import { broadcast, toast } from '../broadcast'
 import { store } from '../store'
 import { errorMessage, killTree, LineSplitter, RingBuffer, sleep, splitArgs, throttle } from '../util'
@@ -11,7 +11,9 @@ import { syncCfg } from './cfg'
 import { database } from './database'
 import { checkPorts } from './ports'
 import { serverFiles } from './server-files'
+import { applyShared, MANAGED_CFG, syncTxAdmins } from './shared'
 import { stats } from './stats'
+import { txadmin, type TxCommand } from './txadmin'
 
 const MAX_LOG_LINES = 5000
 const CRASH_WINDOW = 10 * 60 * 1000
@@ -205,11 +207,14 @@ class Runner {
         connectionString: server.database ? database.connectionString(server.database) : undefined
       })
       if (synced !== cfg) await fs.writeFile(files.cfgPath, synced, 'utf8')
+      await applyShared(server).catch((e) => this.sys(id, `Could not write ${MANAGED_CFG}: ${errorMessage(e)}`))
       cwd = files.dataPath
       args = ['+exec', 'server.cfg', ...splitArgs(server.launchArgs)]
     } else {
       const txData = files.txDataPath!
       await fs.mkdir(txData, { recursive: true })
+      await syncTxAdmins(store.server(id)).catch((e) => this.sys(id, `Could not sync txAdmin admins: ${errorMessage(e)}`))
+      await applyShared(server).catch(() => false)
       cwd = server.root
       args = splitArgs(server.launchArgs)
       Object.assign(env, {
@@ -272,6 +277,7 @@ class Runner {
   private onExit(id: string, code: number | null): void {
     const p = this.proc(id)
     p.child = null
+    txadmin.forget(id)
     p.logFile?.end()
     p.logFile = null
     const reset = {
@@ -354,6 +360,23 @@ class Runner {
     p.child.stdin.write(`${command}\n`)
   }
 
+  /** Refreshes, starts, stops or restarts resources on a running server. */
+  async resourceAction(id: string, action: ResourceAction, name?: string): Promise<void> {
+    const server = store.server(id)
+    const p = this.proc(id)
+    if (!p.child) throw new Error('The server is not running')
+    if (action !== 'refresh' && !name) throw new Error('Choose a resource')
+    if (name && !/^[\w.\-[\]]+$/.test(name)) throw new Error('That is not a valid resource name')
+    const label = action === 'refresh' ? 'refresh' : `${action} ${name}`
+    if (server.mode === 'standalone') {
+      this.command(id, label)
+      return
+    }
+    if (!p.runtime.gameOnline) throw new Error('The game server is not running inside txAdmin yet')
+    const reply = await txadmin.command(server, `${action}_res` as TxCommand, name ?? '')
+    this.sys(id, `txAdmin: ${reply ?? label}`)
+  }
+
   async players(id: string): Promise<PlayerInfo[]> {
     const server = store.server(id)
     if (!this.proc(id).runtime.gameOnline) return []
@@ -392,6 +415,7 @@ class Runner {
         if (this.tick % 2 === 1 || p.runtime.status === 'starting') {
           const dyn = await probe(`http://127.0.0.1:${server.gamePort}/dynamic.json`)
           if (dyn?.ok) {
+            if (server.mode === 'txadmin' && !p.runtime.gameOnline) void applyShared(server).catch(() => false)
             const d = (await dyn.json().catch(() => null)) as { clients?: number; sv_maxclients?: string | number } | null
             patch.gameOnline = true
             patch.players = Number(d?.clients ?? 0)
@@ -416,6 +440,20 @@ class Runner {
         this.set(id, patch)
       })
     )
+  }
+
+  /** Re-applies universal admins and shared config to every server after they change. */
+  async applySharedEverywhere(): Promise<void> {
+    for (const server of store.servers) {
+      const written = await applyShared(server).catch(() => false)
+      const p = this.procs.get(server.id)
+      if (!p?.child) {
+        await syncTxAdmins(server).catch(() => undefined)
+      } else if (written && server.mode === 'standalone' && server.shared) {
+        // New principals apply right away; removed ones are gone after the next restart.
+        this.command(server.id, `exec ${MANAGED_CFG}`)
+      }
+    }
   }
 
   dispose(): void {

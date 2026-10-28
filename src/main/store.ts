@@ -28,6 +28,9 @@ const defaults = (): AppSettings => ({
     managedVersion: null,
     autoStart: true
   },
+  admins: [],
+  adminPrincipals: 'group.admin',
+  sharedConfig: '',
   onboarded: false
 })
 
@@ -73,6 +76,8 @@ class Store {
       settings.db.external.password = unseal(settings.db.external.password)
       const servers = (raw.servers ?? []).map((s) => ({
         ...s,
+        shared: s.shared ?? true,
+        syncedAdmins: s.syncedAdmins ?? [],
         licenseKey: unseal(s.licenseKey ?? ''),
         txAdmin: s.txAdmin ? { ...s.txAdmin, password: unseal(s.txAdmin.password) } : null
       }))

@@ -6,7 +6,8 @@ import type {
   ServerConfig,
   ServerRuntime,
   TaskInfo,
-  ThemePreference
+  ThemePreference,
+  UpdateState
 } from '@shared/types'
 import { api } from '@/lib/utils'
 
@@ -27,6 +28,7 @@ interface AppState {
   history: Record<string, Series>
   tasks: TaskInfo[]
   db: DbStatus | null
+  update: UpdateState | null
   resolvedTheme: 'dark' | 'light'
   paletteOpen: boolean
   setPaletteOpen(open: boolean): void
@@ -60,21 +62,23 @@ export const useApp = create<AppState>((set, get) => ({
   history: {},
   tasks: [],
   db: null,
+  update: null,
   resolvedTheme: 'dark',
   paletteOpen: false,
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
 
   async init() {
-    const [settings, servers, runtime, tasks, db] = await Promise.all([
+    const [settings, servers, runtime, tasks, db, update] = await Promise.all([
       api.settings.get(),
       api.servers.list(),
       api.servers.runtime(),
       api.tasks.list(),
-      api.db.status()
+      api.db.status(),
+      api.updates.state()
     ])
     const theme = resolveTheme(settings.theme)
     applyTheme(theme)
-    set({ settings, servers, runtime, tasks, db, ready: true, resolvedTheme: theme })
+    set({ settings, servers, runtime, tasks, db, update, ready: true, resolvedTheme: theme })
 
     api.on.settings((s) => {
       const t = resolveTheme(s.theme)
@@ -84,6 +88,7 @@ export const useApp = create<AppState>((set, get) => ({
     api.on.servers((servers) => set({ servers }))
     api.on.tasks((tasks) => set({ tasks }))
     api.on.db((db) => set({ db }))
+    api.on.update((update) => set({ update }))
     api.on.runtime((runtime) => {
       const history = { ...get().history }
       for (const [id, r] of Object.entries(runtime)) {

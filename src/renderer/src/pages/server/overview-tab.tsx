@@ -1,13 +1,16 @@
-import { ArrowRight, CircleAlert, KeyRound } from 'lucide-react'
+import { ArrowRight, CircleAlert, KeyRound, ShieldPlus } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import type { PlayerInfo, ServerConfig, ServerRuntime } from '@shared/types'
 import { formatBytes, formatDuration } from '@shared/format'
+import { usefulIdentifiers } from '@/components/dialogs/admin'
 import { Panel } from '@/components/layout/page'
 import { isLive, useServerControl } from '@/components/server-actions'
 import { Sparkline } from '@/components/sparkline'
 import { Button } from '@/components/ui/button'
-import { CopyButton } from '@/components/ui/misc'
+import { Badge, CopyButton } from '@/components/ui/misc'
+import { Tooltip } from '@/components/ui/tooltip'
+import { useUi } from '@/store/ui'
 import { useAsync, useNow } from '@/lib/hooks'
 import { parseAnsi } from '@/lib/ansi'
 import { api, cn, shortPath } from '@/lib/utils'
@@ -128,6 +131,9 @@ function RecentOutput({ server }: { server: ServerConfig }) {
 
 function Players({ server, runtime }: { server: ServerConfig; runtime: ServerRuntime | undefined }) {
   const [players, setPlayers] = useState<PlayerInfo[]>([])
+  const admins = useApp((s) => s.settings?.admins ?? [])
+  const editAdmin = useUi((s) => s.editAdmin)
+  const isAdmin = (p: PlayerInfo): boolean => admins.some((a) => a.identifiers.some((id) => p.identifiers.includes(id)))
   const online = runtime?.gameOnline
   useEffect(() => {
     if (!online) {
@@ -151,10 +157,22 @@ function Players({ server, runtime }: { server: ServerConfig; runtime: ServerRun
       {players.length ? (
         <div className="max-h-[260px] overflow-y-auto">
           {players.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 border-b border-line px-4 py-2 last:border-0">
+            <div key={p.id} className="group flex h-10 items-center gap-3 border-b border-line px-4 last:border-0">
               <span className="w-8 font-mono text-xs text-fg-subtle">{p.id}</span>
               <span className="flex-1 truncate text-[13px] text-fg">{p.name}</span>
-              <span className="text-xs text-fg-subtle tabular">{p.ping} ms</span>
+              {isAdmin(p) ? (
+                <Badge>Admin</Badge>
+              ) : (
+                <Tooltip content="Make admin on every server">
+                  <button
+                    onClick={() => editAdmin({ name: p.name.replace(/[^A-Za-z0-9._-]/g, '').slice(0, 20), identifiers: usefulIdentifiers(p.identifiers) })}
+                    className="flex h-6 w-6 items-center justify-center rounded-[5px] text-fg-faint opacity-0 group-hover:opacity-100 hover:bg-hover hover:text-fg"
+                  >
+                    <ShieldPlus size={13} strokeWidth={1.75} />
+                  </button>
+                </Tooltip>
+              )}
+              <span className="w-12 text-right text-xs text-fg-subtle tabular">{p.ping} ms</span>
             </div>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import * as D from '@radix-ui/react-dialog'
-import { ArrowRight, Database, FolderInput, LayoutGrid, Package, Play, Plus, RotateCw, Search, Settings, Square } from 'lucide-react'
+import { ArrowRight, Database, FolderInput, LayoutGrid, Package, Play, Plus, RotateCw, Search, Settings, ShieldCheck, Square } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { isLive } from '@/components/server-actions'
@@ -60,6 +60,7 @@ export function CommandPalette() {
       { id: 'nav-overview', group: 'Go to', label: 'Overview', icon: <LayoutGrid size={14} />, run: () => navigate('/') },
       { id: 'nav-artifacts', group: 'Go to', label: 'Artifacts', icon: <Package size={14} />, run: () => navigate('/artifacts') },
       { id: 'nav-database', group: 'Go to', label: 'Database', icon: <Database size={14} />, run: () => navigate('/database') },
+      { id: 'nav-admins', group: 'Go to', label: 'Admins', icon: <ShieldCheck size={14} />, run: () => navigate('/admins') },
       { id: 'nav-settings', group: 'Go to', label: 'Settings', icon: <Settings size={14} />, run: () => navigate('/settings') }
     )
     return list

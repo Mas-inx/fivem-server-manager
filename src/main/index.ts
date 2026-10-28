@@ -4,9 +4,11 @@ import icon from '../../resources/icon.png?asset'
 import trayIcon from '../../resources/tray.png?asset'
 import { broadcast } from './broadcast'
 import { registerIpc } from './ipc'
+import { lifecycle } from './lifecycle'
 import { store } from './store'
 import { sleep, throttle } from './util'
 import { database } from './services/database'
+import { initUpdater } from './updater'
 import { runner } from './services/runner'
 
 // Development hooks: an isolated profile and a debugging port for automated UI checks.
@@ -15,7 +17,6 @@ if (process.env.FSM_DEBUG_PORT) app.commandLine.appendSwitch('remote-debugging-p
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
-let quitting = false
 let shuttingDown = false
 let cleaned = false
 
@@ -55,7 +56,7 @@ function createWindow(): void {
   })
 
   win.on('close', (e) => {
-    if (quitting) return
+    if (lifecycle.quitting) return
     if (store.settings.closeToTray && tray) {
       e.preventDefault()
       win?.hide()
@@ -149,12 +150,12 @@ async function requestQuit(): Promise<void> {
     const res = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options)
     if (res.response !== 0) return
   }
-  quitting = true
+  lifecycle.quitting = true
   app.quit()
 }
 
 app.on('before-quit', (e) => {
-  quitting = true
+  lifecycle.quitting = true
   if (cleaned) return
   e.preventDefault()
   if (shuttingDown) return
@@ -179,6 +180,7 @@ if (!app.requestSingleInstanceLock()) {
     registerIpc(() => win)
     createTray()
     createWindow()
+    initUpdater()
 
     const refresh = (): void => updateTray()
     // Keep the tray menu in step with server state without coupling services to it.

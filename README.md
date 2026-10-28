@@ -35,6 +35,13 @@ Running more than one FiveM server on the same machine usually means juggling ar
 - Duplicate a server in one click, including its txAdmin data and (optionally) a full copy of its database
 - Import existing servers from a `server-data` folder or a `txData` folder, in place or copied
 
+**Admins and shared config**
+- Add someone once and they are an admin on every server: in game through `add_principal`, and in txAdmin's panel on txAdmin servers
+- Pick admins straight from the players online on any of your servers, or paste their identifiers
+- Choose the permission group (`group.admin`, `qbcore.god`, …)
+- Shared config lines every server runs, such as a Steam Web API key, tags or extra ace rules
+- Each server can opt out in its settings
+
 **txAdmin**
 - Each server gets its own txData, port and admin account through txAdmin's `TXHOST_*` variables
 - The admin account is created on first boot and you are signed in automatically
@@ -57,9 +64,10 @@ Running more than one FiveM server on the same machine usually means juggling ar
 **Everyday tools**
 - Console with ANSI colours, filtering, timestamps and command history
 - `server.cfg` editor with syntax highlighting and Ctrl+S
-- Resource list with on/off switches that edit `ensure` lines (applied live on standalone servers)
+- Resource list with on/off switches that edit `ensure` lines, plus refresh and per-resource restart, applied live on standalone and txAdmin servers
 - Command palette (Ctrl+K) for jumping to servers and running actions
 - Dark and light themes, native Windows title bar controls and snap layouts
+- Updates itself from GitHub Releases: new versions download in the background and install when you restart
 
 <p align="center">
   <img src="docs/screenshots/new-server.png" width="49%" alt="New server wizard" />
@@ -97,6 +105,9 @@ You will need a free license key per running server from [portal.cfx.re](https:/
 - **Standalone servers** are launched with `+exec server.cfg`. Before each start the endpoint port, `sv_maxclients`, `sv_licenseKey` and `mysql_connection_string` are synced from the server's settings; everything else in the file is left as you wrote it.
 - Builds come from the official Cfx.re changelog API and download page.
 - Settings live in `%APPDATA%\FiveM Server Manager\library.json`. Passwords and license keys are encrypted with Windows DPAPI through Electron's `safeStorage`.
+- Universal admins and shared config are written to a managed `server-manager.cfg` that each `server.cfg` execs. txAdmin panel accounts are merged into `admins.json` only while that server is stopped, because txAdmin restores the file if it changes while running; the master account and admins created inside txAdmin are never touched.
+- Resource commands reach standalone servers through their console and txAdmin servers through txAdmin's own API, signed in with the server's txAdmin account.
+- Updates come from GitHub Releases through electron-updater, which reads `latest.yml` from the newest release.
 - Deleting a server only ever removes folders inside the library, and moves them to the Recycle Bin.
 
 ## Development
@@ -143,6 +154,7 @@ Two environment variables help when working on the app:
 | --- | --- |
 | `FSM_USER_DATA` | Use a different profile folder, so development never touches your real servers |
 | `FSM_DEBUG_PORT` | Expose the Chromium remote debugging port for automated UI checks |
+| `FSM_UPDATE_URL` | Point the updater at a local folder served over HTTP (with `latest.yml` and an installer) to test updates |
 
 ### Project layout
 

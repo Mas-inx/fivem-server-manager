@@ -42,6 +42,7 @@ function toDraft(s: ServerConfig): Draft {
     autoStart: s.autoStart,
     autoRestart: s.autoRestart,
     launchArgs: s.launchArgs,
+    shared: s.shared,
     txUser: s.txAdmin?.username ?? '',
     txPass: s.txAdmin?.password ?? ''
   }
@@ -197,6 +198,9 @@ export function SettingsTab({ server, runtime }: { server: ServerConfig; runtime
               </SettingRow>
               <SettingRow title="Restart on crash" description="Restarts after 5 seconds. Pauses if it crashes more than 4 times in 10 minutes.">
                 <Switch checked={draft.autoRestart} onChange={(v) => set('autoRestart', v)} />
+              </SettingRow>
+              <SettingRow title="Universal admins and shared config" description="Adds the admins and config from the Admins page through server-manager.cfg.">
+                <Switch checked={draft.shared} onChange={(v) => set('shared', v)} />
               </SettingRow>
             </div>
             <Field label="Extra launch arguments" hint="Appended to the FXServer command line, for example +set sv_enforceGameBuild 3258">
