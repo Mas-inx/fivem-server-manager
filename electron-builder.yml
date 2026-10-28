@@ -34,4 +34,8 @@ nsis:
   artifactName: FiveM-Server-Manager-${version}-Setup.${ext}
   uninstallDisplayName: FiveM Server Manager
 
-publish: null
+# Releases are uploaded by .github/workflows/release.yml; this only generates latest.yml for updates.
+publish:
+  provider: github
+  owner: Mas-inx
+  repo: fivem-server-manager

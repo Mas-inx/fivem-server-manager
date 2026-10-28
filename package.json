@@ -6,6 +6,14 @@
   "main": "./out/main/index.js",
   "author": "FiveM Server Manager contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mas-inx/fivem-server-manager.git"
+  },
+  "homepage": "https://github.com/Mas-inx/fivem-server-manager",
+  "bugs": {
+    "url": "https://github.com/Mas-inx/fivem-server-manager/issues"
+  },
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",

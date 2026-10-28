@@ -10,6 +10,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Mas-inx/fivem-server-manager/releases/latest"><img src="https://img.shields.io/github/v/release/Mas-inx/fivem-server-manager?label=download" alt="Latest release" /></a>
+  <a href="https://github.com/Mas-inx/fivem-server-manager/actions/workflows/ci.yml"><img src="https://github.com/Mas-inx/fivem-server-manager/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Mas-inx/fivem-server-manager" alt="MIT license" /></a>
+</p>
+
+<p align="center">
   <img src="docs/screenshots/overview.png" alt="Overview of all servers" />
 </p>
 
@@ -64,7 +70,9 @@ Running more than one FiveM server on the same machine usually means juggling ar
 
 ## Install
 
-Download the latest installer from the Releases page and run it. Windows 10 or 11 (64-bit) is required.
+Download `FiveM-Server-Manager-<version>-Setup.exe` from the [latest release](https://github.com/Mas-inx/fivem-server-manager/releases/latest) and run it. Windows 10 or 11 (64-bit) is required.
+
+The installer is not code-signed yet, so Windows SmartScreen may say it protected your PC. Choose **More info**, then **Run anyway**.
 
 The first time you open the app it asks where to keep your **library**: the folder that holds servers, downloaded builds and the managed database. A short path without spaces, such as `C:\FXServers`, works best.
 
@@ -112,6 +120,22 @@ To build an installer into `dist/`:
 ```bash
 npm run dist
 ```
+
+### Releasing
+
+Releases are built by GitHub Actions. Bump the version and push the tag:
+
+```bash
+npm version patch
+```
+
+```bash
+git push --follow-tags
+```
+
+The [release workflow](.github/workflows/release.yml) checks that the tag matches `package.json`, builds the installer on Windows and publishes a GitHub Release with generated notes. Tags with a hyphen, such as `v0.2.0-beta.1`, are marked as pre-releases.
+
+### Environment variables
 
 Two environment variables help when working on the app:
 
