@@ -1,5 +1,5 @@
 import * as D from '@radix-ui/react-dialog'
-import { ArrowRight, Database, FolderInput, LayoutGrid, Package, Play, Plus, RotateCw, Search, Settings, ShieldCheck, Square } from 'lucide-react'
+import { ArrowRight, CloudDownload, Database, FolderInput, LayoutGrid, Package, Play, Plus, RotateCw, Search, Settings, ShieldCheck, Square } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { isLive } from '@/components/server-actions'
@@ -55,6 +55,7 @@ export function CommandPalette() {
     list.push(
       { id: 'new', group: 'Actions', label: 'New server', icon: <Plus size={14} />, run: () => openDialog('newServer') },
       { id: 'import', group: 'Actions', label: 'Import server', icon: <FolderInput size={14} />, run: () => openDialog('importServer') },
+      { id: 'clone', group: 'Actions', label: 'Clone server from a sync remote', icon: <CloudDownload size={14} />, run: () => openDialog('cloneRemote') },
       { id: 'start-all', group: 'Actions', label: 'Start all servers', icon: <Play size={14} />, run: () => void attempt(() => api.servers.startAll()) },
       { id: 'stop-all', group: 'Actions', label: 'Stop all servers', icon: <Square size={13} />, run: () => void attempt(() => api.servers.stopAll()) },
       { id: 'nav-overview', group: 'Go to', label: 'Overview', icon: <LayoutGrid size={14} />, run: () => navigate('/') },

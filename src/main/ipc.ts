@@ -12,6 +12,8 @@ import { checkPorts, suggestPorts } from './services/ports'
 import { runner } from './services/runner'
 import { serverFiles } from './services/server-files'
 import { servers } from './services/servers'
+import { hub } from './services/hub'
+import { sync } from './services/sync'
 
 type Handler = (...args: never[]) => unknown
 
@@ -153,6 +155,39 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   handle('updates:state', () => updateState())
   handle('updates:check', () => checkForUpdates())
   handle('updates:install', () => installUpdate(() => (lifecycle.quitting = true)))
+
+  // Sync
+  handle('sync:engine', () => sync.engine())
+  handle('sync:progress', () => sync.progressMap())
+  handle('sync:remotes', () => sync.listRemotes())
+  handle('sync:addRemote', (input) => sync.addRemote(input))
+  handle('sync:importCode', (code: string) => sync.importCode(code))
+  handle('sync:connectionCode', (id: string) => sync.connectionCode(id))
+  handle('sync:renameRemote', (id: string, name: string) => sync.renameRemote(id, name))
+  handle('sync:removeRemote', (id: string) => sync.removeRemote(id))
+  handle('sync:testRemote', (id: string) => sync.testRemote(id))
+  handle('sync:remoteServers', (remoteId: string) => sync.remoteServers(remoteId))
+  handle('sync:enable', (id: string, opts) => sync.enable(id, opts))
+  handle('sync:disable', (id: string) => sync.disable(id))
+  handle('sync:setIncludeDatabase', (id: string, v: boolean) => sync.setIncludeDatabase(id, v))
+  handle('sync:readIgnore', (id: string) => sync.readIgnore(id))
+  handle('sync:writeIgnore', (id: string, text: string) => sync.writeIgnore(id, text))
+  handle('sync:check', (id: string) => sync.check(id))
+  handle('sync:push', (id: string, opts) => sync.push(id, opts))
+  handle('sync:pull', (id: string, opts) => sync.pull(id, opts))
+  handle('sync:cancel', (id: string) => sync.cancel(id))
+  handle('sync:history', (id: string) => sync.history(id))
+  handle('sync:clone', (input) => sync.clone(input))
+
+  // Sync hub
+  handle('hub:status', () => hub.status())
+  handle('hub:suggest', () => hub.suggest())
+  handle('hub:setup', (input) => hub.setup(input))
+  handle('hub:start', () => hub.start())
+  handle('hub:stop', () => hub.stop())
+  handle('hub:disable', () => hub.disable())
+  handle('hub:connectionCode', () => hub.connectionCode())
+  handle('hub:openFirewall', () => hub.openFirewall())
 
   // Tasks
   handle('tasks:list', () => tasks.list())

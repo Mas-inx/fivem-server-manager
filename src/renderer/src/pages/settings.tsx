@@ -7,6 +7,7 @@ import { Input, SecretInput } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { SettingRow, Switch } from '@/components/ui/switch'
 import { attempt, toast } from '@/components/ui/toast'
+import { SyncSettings } from '@/components/sync-remotes'
 import { installUpdate, RELEASES_URL } from '@/components/update-pill'
 import { useAsync } from '@/lib/hooks'
 import { api, relativeTime } from '@/lib/utils'
@@ -137,6 +138,8 @@ export function SettingsPage() {
           </div>
         </SettingRow>
       </Group>
+
+      <SyncSettings group={(title, children) => <Group title={title}>{children}</Group>} />
 
       <Group title="About">
         <SettingRow title="FiveM Server Manager" description={info.data ? `Version ${info.data.version} · Electron ${info.data.electron}` : ' '}>

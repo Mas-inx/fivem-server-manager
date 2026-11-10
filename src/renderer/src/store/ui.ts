@@ -4,12 +4,13 @@ import type { UniversalAdmin } from '@shared/types'
 interface UiState {
   newServer: boolean
   importServer: boolean
+  cloneRemote: boolean
   duplicateId: string | null
   deleteId: string | null
   /** Admin being added or edited; an id means editing an existing one. */
   adminDraft: Partial<UniversalAdmin> | null
-  open(dialog: 'newServer' | 'importServer'): void
-  close(dialog: 'newServer' | 'importServer'): void
+  open(dialog: 'newServer' | 'importServer' | 'cloneRemote'): void
+  close(dialog: 'newServer' | 'importServer' | 'cloneRemote'): void
   setDuplicate(id: string | null): void
   setDelete(id: string | null): void
   editAdmin(draft: Partial<UniversalAdmin> | null): void
@@ -18,6 +19,7 @@ interface UiState {
 export const useUi = create<UiState>((set) => ({
   newServer: false,
   importServer: false,
+  cloneRemote: false,
   duplicateId: null,
   deleteId: null,
   adminDraft: null,

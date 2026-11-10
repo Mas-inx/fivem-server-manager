@@ -12,6 +12,7 @@ import { database } from './database'
 import { checkPorts } from './ports'
 import { serverFiles } from './server-files'
 import { applyShared, MANAGED_CFG, syncTxAdmins } from './shared'
+import { txHostEnv } from '../sync/overrides'
 import { stats } from './stats'
 import { txadmin, type TxCommand } from './txadmin'
 
@@ -217,26 +218,18 @@ class Runner {
       await applyShared(server).catch(() => false)
       cwd = server.root
       args = splitArgs(server.launchArgs)
-      Object.assign(env, {
-        TXHOST_DATA_PATH: txData,
-        TXHOST_TXA_PORT: String(server.txAdminPort),
-        TXHOST_FXS_PORT: String(server.gamePort),
-        TXHOST_GAME_NAME: 'fivem',
-        TXHOST_PROVIDER_NAME: 'Server Manager',
-        TXHOST_IGNORE_DEPRECATED_CONFIGS: 'true'
-      })
-      // txAdmin refuses to boot when this variable is malformed, so only pass real keys through.
-      if (/^cfxk_\w+_\w+$/.test(server.licenseKey)) env.TXHOST_DEFAULT_CFXKEY = server.licenseKey
-      if (server.database) {
-        const c = database.connection()
-        Object.assign(env, {
-          TXHOST_DEFAULT_DBHOST: c.host,
-          TXHOST_DEFAULT_DBPORT: String(c.port),
-          TXHOST_DEFAULT_DBUSER: c.user,
-          TXHOST_DEFAULT_DBPASS: c.password,
-          TXHOST_DEFAULT_DBNAME: server.database
+      Object.assign(
+        env,
+        txHostEnv(txData, {
+          mode: server.mode,
+          gamePort: server.gamePort,
+          txAdminPort: server.txAdminPort,
+          licenseKey: server.licenseKey,
+          database: server.database,
+          connectionString: null,
+          db: database.connection()
         })
-      }
+      )
       // Only seed the admin account on first boot; afterwards txAdmin owns admins.json.
       if (server.txAdmin && !existsSync(join(txData, 'admins.json'))) {
         env.TXHOST_DEFAULT_ACCOUNT = `${server.txAdmin.username}::${hashSync(server.txAdmin.password, 11)}`

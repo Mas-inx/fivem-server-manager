@@ -1,6 +1,6 @@
 import { app, safeStorage } from 'electron'
 import { existsSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
 import type { AppSettings, ServerConfig } from '@shared/types'
 import { broadcast } from './broadcast'
@@ -31,7 +31,9 @@ const defaults = (): AppSettings => ({
   admins: [],
   adminPrincipals: 'group.admin',
   sharedConfig: '',
-  onboarded: false
+  onboarded: false,
+  syncMachineName: hostname(),
+  syncHub: { enabled: false, port: 8000, dataPath: '', publicAddress: '', appendOnly: true, autoStart: true }
 })
 
 // Secrets are encrypted with the OS keychain (DPAPI on Windows) before they touch disk.
@@ -70,7 +72,8 @@ class Store {
           ...base.db,
           ...raw.settings?.db,
           external: { ...base.db.external, ...raw.settings?.db?.external }
-        }
+        },
+        syncHub: { ...base.syncHub, ...raw.settings?.syncHub }
       }
       settings.db.managedPassword = unseal(settings.db.managedPassword)
       settings.db.external.password = unseal(settings.db.external.password)
@@ -78,6 +81,8 @@ class Store {
         ...s,
         shared: s.shared ?? true,
         syncedAdmins: s.syncedAdmins ?? [],
+        sync: s.sync ?? null,
+        syncState: s.syncState ?? null,
         licenseKey: unseal(s.licenseKey ?? ''),
         txAdmin: s.txAdmin ? { ...s.txAdmin, password: unseal(s.txAdmin.password) } : null
       }))

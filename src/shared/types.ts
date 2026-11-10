@@ -39,6 +39,10 @@ export interface ServerConfig {
   notes: string
   createdAt: number
   lastStartedAt: number | null
+  /** Sync settings; null when the server is not synced. */
+  sync: ServerSyncConfig | null
+  /** What this machine last pushed or pulled. Kept per machine, never synced. */
+  syncState: ServerSyncState | null
 }
 
 /** Live state of a server, owned by the main process. */
@@ -156,6 +160,10 @@ export interface AppSettings {
   /** cfg lines executed by every server after its own server.cfg. */
   sharedConfig: string
   onboarded: boolean
+  /** Name this machine uses on snapshots it pushes. */
+  syncMachineName: string
+  /** This machine as the sync hub: a rest-server the other machines push to and pull from. */
+  syncHub: HubSettings
 }
 
 export interface TaskInfo {
@@ -301,3 +309,194 @@ export interface UniversalAdmin {
 
 export const IDENTIFIER_PATTERN = /^(fivem|license2?|discord|steam|xbl|live):[A-Za-z0-9]+$/
 export const TXADMIN_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{1,18}[A-Za-z0-9]$/
+
+// ---------------------------------------------------------------------------------------------
+// Sync
+
+/** rest: a hub on one of your own machines (restic rest-server over HTTPS). */
+export type SyncRemoteKind = 'rest' | 'r2' | 's3' | 'sftp' | 'local'
+
+/** A storage remote as the renderer sees it; keys and the repo password never leave the main process. */
+export interface SyncRemote {
+  id: string
+  name: string
+  kind: SyncRemoteKind
+  /** rest: hub address (https://host:port); r2: account id or endpoint URL; s3: endpoint URL. */
+  endpoint: string
+  bucket: string
+  /** Folder inside the bucket. */
+  prefix: string
+  region: string
+  /** sftp */
+  host: string
+  port: number
+  user: string
+  /** sftp: folder on the host; local: folder on this machine or a network share. */
+  path: string
+  /** sftp: private key file, empty to use ssh-agent or ~/.ssh. */
+  keyFile: string
+  /** rest: the hub's own CA certificate (PEM). Only servers signed by it are trusted. */
+  certPem: string
+  createdAt: number
+}
+
+export interface SyncRemoteInput {
+  name: string
+  kind: SyncRemoteKind
+  endpoint: string
+  bucket: string
+  prefix: string
+  region: string
+  host: string
+  port: number
+  user: string
+  path: string
+  keyFile: string
+  certPem: string
+  /** rest: the hub's password for `user`. */
+  restPassword: string
+  accessKeyId: string
+  secretAccessKey: string
+  /** Blank creates a strong random password. Needed to open an existing repository. */
+  repoPassword: string
+}
+
+export interface ServerSyncConfig {
+  /** Shared by every copy of this server, on every machine. */
+  id: string
+  remoteId: string
+  includeDatabase: boolean
+}
+
+export interface ServerSyncState {
+  /** Snapshot this machine last pushed or pulled, the base for conflict checks. */
+  base: string | null
+  lastAction: 'push' | 'pull' | 'clone' | 'restore' | null
+  lastAt: number | null
+  /** Set when a push was cancelled or failed part-way; pushing again resumes it. */
+  interrupted: boolean
+}
+
+export type SyncSnapshotKind = 'push' | 'pre-pull'
+
+export interface SyncSnapshot {
+  id: string
+  shortId: string
+  time: number
+  machine: string
+  kind: SyncSnapshotKind
+  syncId: string
+  name: string
+  platform: Platform | null
+  build: string | null
+  mode: ServerMode | null
+  hasDatabase: boolean
+  files: number
+  bytes: number
+  /** Bytes this snapshot added to the remote, after dedup and compression. */
+  added: number
+}
+
+export interface FileChange {
+  path: string
+  change: 'added' | 'removed' | 'modified'
+}
+
+export type SyncCheckState = 'no-remote-copy' | 'never-synced' | 'in-sync' | 'local-changed' | 'remote-changed' | 'diverged'
+
+export interface SyncCheck {
+  state: SyncCheckState
+  base: string | null
+  latest: SyncSnapshot | null
+  local: FileChange[]
+  remote: FileChange[]
+  /** True when the remote change list could not be read (for example the base snapshot was removed). */
+  remoteUnknown: boolean
+}
+
+export type SyncOp = 'push' | 'pull' | 'clone' | 'restore'
+
+export interface SyncProgress {
+  serverId: string
+  op: SyncOp
+  phase: string
+  /** 0..1, null while unknown. */
+  fraction: number | null
+  bytesDone: number
+  bytesTotal: number
+  filesDone: number
+  filesTotal: number
+  /** Bytes per second, smoothed. */
+  speed: number
+  /** Seconds left, null while unknown. */
+  eta: number | null
+  startedAt: number
+}
+
+export interface RemoteServerEntry {
+  syncId: string
+  name: string
+  latest: SyncSnapshot
+  snapshots: number
+}
+
+export interface SyncPushOptions {
+  includeDatabase: boolean
+  /** Skips the conflict check (the user saw the warning and chose to continue). */
+  force: boolean
+}
+
+export interface SyncPullOptions {
+  /** Restore this snapshot instead of the latest push. */
+  snapshotId?: string
+  importDatabase: boolean
+  force: boolean
+}
+
+export interface SyncCloneInput {
+  remoteId: string
+  syncId: string
+  snapshotId?: string
+  name: string
+  gamePort: number
+  txAdminPort: number
+  importDatabase: boolean
+}
+
+export interface SyncEngineInfo {
+  version: string
+  installed: boolean
+}
+
+export type SyncResult =
+  | { status: 'done'; snapshot: SyncSnapshot | null; restorePoint?: string; message: string }
+  | { status: 'conflict'; check: SyncCheck }
+
+export interface HubSettings {
+  enabled: boolean
+  port: number
+  /** Where the repository lives. Every machine's history ends up here. */
+  dataPath: string
+  /** Address the other machines use to reach this one (public IP or DNS name). */
+  publicAddress: string
+  /** Clients can add snapshots but never delete or rewrite them. */
+  appendOnly: boolean
+  autoStart: boolean
+}
+
+export type HubSetupInput = Omit<HubSettings, 'enabled'>
+
+export interface HubStatus {
+  version: string
+  configured: boolean
+  running: boolean
+  starting: boolean
+  settings: HubSettings
+  /** Addresses this machine has, public ones first, to offer as the public address. */
+  addresses: string[]
+  /** Null when Windows could not be asked. */
+  firewallOpen: boolean | null
+  repoBytes: number | null
+  diskFree: number | null
+  error: string | null
+}

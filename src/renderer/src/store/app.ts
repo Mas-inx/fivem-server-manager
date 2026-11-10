@@ -5,6 +5,7 @@ import type {
   LogLine,
   ServerConfig,
   ServerRuntime,
+  SyncProgress,
   TaskInfo,
   ThemePreference,
   UpdateState
@@ -29,6 +30,8 @@ interface AppState {
   tasks: TaskInfo[]
   db: DbStatus | null
   update: UpdateState | null
+  /** Running sync operations by server id (or clone:<sync id>). */
+  sync: Record<string, SyncProgress>
   resolvedTheme: 'dark' | 'light'
   paletteOpen: boolean
   setPaletteOpen(open: boolean): void
@@ -63,22 +66,24 @@ export const useApp = create<AppState>((set, get) => ({
   tasks: [],
   db: null,
   update: null,
+  sync: {},
   resolvedTheme: 'dark',
   paletteOpen: false,
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
 
   async init() {
-    const [settings, servers, runtime, tasks, db, update] = await Promise.all([
+    const [settings, servers, runtime, tasks, db, update, sync] = await Promise.all([
       api.settings.get(),
       api.servers.list(),
       api.servers.runtime(),
       api.tasks.list(),
       api.db.status(),
-      api.updates.state()
+      api.updates.state(),
+      api.sync.progress()
     ])
     const theme = resolveTheme(settings.theme)
     applyTheme(theme)
-    set({ settings, servers, runtime, tasks, db, update, ready: true, resolvedTheme: theme })
+    set({ settings, servers, runtime, tasks, db, update, sync, ready: true, resolvedTheme: theme })
 
     api.on.settings((s) => {
       const t = resolveTheme(s.theme)
@@ -89,6 +94,7 @@ export const useApp = create<AppState>((set, get) => ({
     api.on.tasks((tasks) => set({ tasks }))
     api.on.db((db) => set({ db }))
     api.on.update((update) => set({ update }))
+    api.on.sync((sync) => set({ sync }))
     api.on.runtime((runtime) => {
       const history = { ...get().history }
       for (const [id, r] of Object.entries(runtime)) {

@@ -20,6 +20,9 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "lint": "oxlint src tests",
+    "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.mts",
     "icons": "node scripts/build-icons.mjs",
     "dist": "electron-vite build && electron-builder --win --config electron-builder.yml",
     "dist:dir": "electron-vite build && electron-builder --win --dir --config electron-builder.yml",
@@ -57,6 +60,7 @@
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "lucide-react": "^1.63.0",
+    "oxlint": "^1.93.0",
     "png-to-ico": "^3.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -64,6 +68,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
+    "vitest": "^5.1.0",
     "zustand": "^5.0.16"
   }
 }

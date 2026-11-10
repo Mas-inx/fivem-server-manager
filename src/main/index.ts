@@ -10,6 +10,7 @@ import { sleep, throttle } from './util'
 import { database } from './services/database'
 import { initUpdater } from './updater'
 import { runner } from './services/runner'
+import { hub } from './services/hub'
 
 // Development hooks: an isolated profile and a debugging port for automated UI checks.
 if (process.env.FSM_USER_DATA) app.setPath('userData', process.env.FSM_USER_DATA)
@@ -162,7 +163,7 @@ app.on('before-quit', (e) => {
   shuttingDown = true
   void (async () => {
     await Promise.race([Promise.all([runner.stopAll(), store.flush()]), sleep(15000)])
-    await Promise.race([database.dispose(), sleep(16000)])
+    await Promise.race([Promise.all([database.dispose(), hub.dispose()]), sleep(16000)])
     runner.dispose()
     cleaned = true
     app.quit()
@@ -197,6 +198,7 @@ if (!app.requestSingleInstanceLock()) {
         .catch(() => undefined)
         .finally(() => void database.probe())
     } else void database.probe()
+    void hub.autoStart()
 
     // Stagger auto-start so servers don't all hammer the disk at once.
     const autostart = store.servers.filter((s) => s.autoStart)

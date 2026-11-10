@@ -21,6 +21,19 @@ import type {
   ServerFiles,
   ServerPatch,
   ServerRuntime,
+  RemoteServerEntry,
+  SyncCheck,
+  SyncCloneInput,
+  SyncEngineInfo,
+  SyncProgress,
+  SyncPullOptions,
+  SyncPushOptions,
+  SyncRemote,
+  SyncRemoteInput,
+  SyncResult,
+  SyncSnapshot,
+  HubSetupInput,
+  HubStatus,
   TaskInfo,
   ToastEvent,
   UpdateState
@@ -99,6 +112,42 @@ export interface Api {
     /** Restarts into the downloaded version. False when nothing is ready. */
     install(): Promise<boolean>
   }
+  sync: {
+    engine(): Promise<SyncEngineInfo>
+    progress(): Promise<Record<string, SyncProgress>>
+    remotes(): Promise<SyncRemote[]>
+    /** Connects a storage remote, creating the repository when the location is empty. */
+    addRemote(input: SyncRemoteInput): Promise<SyncRemote>
+    importCode(code: string): Promise<SyncRemote>
+    connectionCode(id: string): Promise<string>
+    renameRemote(id: string, name: string): Promise<void>
+    removeRemote(id: string): Promise<void>
+    testRemote(id: string): Promise<{ snapshots: number; servers: number }>
+    remoteServers(remoteId: string): Promise<RemoteServerEntry[]>
+    enable(id: string, opts: { remoteId: string; syncId?: string; includeDatabase: boolean }): Promise<ServerConfig>
+    disable(id: string): Promise<ServerConfig>
+    setIncludeDatabase(id: string, includeDatabase: boolean): Promise<ServerConfig>
+    readIgnore(id: string): Promise<string>
+    writeIgnore(id: string, text: string): Promise<void>
+    check(id: string): Promise<SyncCheck>
+    push(id: string, opts: SyncPushOptions): Promise<SyncResult>
+    pull(id: string, opts: SyncPullOptions): Promise<SyncResult>
+    cancel(id: string): Promise<void>
+    history(id: string): Promise<SyncSnapshot[]>
+    clone(input: SyncCloneInput): Promise<ServerConfig>
+  }
+  hub: {
+    status(): Promise<HubStatus>
+    /** Saved settings, or defaults for a new hub (free port, detected address). */
+    suggest(): Promise<HubSetupInput>
+    setup(input: HubSetupInput): Promise<HubStatus>
+    start(): Promise<void>
+    stop(): Promise<void>
+    disable(): Promise<HubStatus>
+    connectionCode(): Promise<string>
+    /** Adds the inbound firewall rule; Windows asks for administrator approval. */
+    openFirewall(): Promise<HubStatus>
+  }
   tasks: {
     list(): Promise<TaskInfo[]>
     dismiss(id: string): Promise<void>
@@ -113,6 +162,8 @@ export interface Api {
     toast(cb: (toast: ToastEvent) => void): Unsubscribe
     navigate(cb: (path: string) => void): Unsubscribe
     update(cb: (state: UpdateState) => void): Unsubscribe
+    sync(cb: (progress: Record<string, SyncProgress>) => void): Unsubscribe
+    hub(cb: (status: HubStatus) => void): Unsubscribe
   }
 }
 

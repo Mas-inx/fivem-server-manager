@@ -82,6 +82,39 @@ const api: Api = {
     check: () => call('updates:check'),
     install: () => call('updates:install')
   },
+  sync: {
+    engine: () => call('sync:engine'),
+    progress: () => call('sync:progress'),
+    remotes: () => call('sync:remotes'),
+    addRemote: (input) => call('sync:addRemote', input),
+    importCode: (code) => call('sync:importCode', code),
+    connectionCode: (id) => call('sync:connectionCode', id),
+    renameRemote: (id, name) => call('sync:renameRemote', id, name),
+    removeRemote: (id) => call('sync:removeRemote', id),
+    testRemote: (id) => call('sync:testRemote', id),
+    remoteServers: (remoteId) => call('sync:remoteServers', remoteId),
+    enable: (id, opts) => call('sync:enable', id, opts),
+    disable: (id) => call('sync:disable', id),
+    setIncludeDatabase: (id, v) => call('sync:setIncludeDatabase', id, v),
+    readIgnore: (id) => call('sync:readIgnore', id),
+    writeIgnore: (id, text) => call('sync:writeIgnore', id, text),
+    check: (id) => call('sync:check', id),
+    push: (id, opts) => call('sync:push', id, opts),
+    pull: (id, opts) => call('sync:pull', id, opts),
+    cancel: (id) => call('sync:cancel', id),
+    history: (id) => call('sync:history', id),
+    clone: (input) => call('sync:clone', input)
+  },
+  hub: {
+    status: () => call('hub:status'),
+    suggest: () => call('hub:suggest'),
+    setup: (input) => call('hub:setup', input),
+    start: () => call('hub:start'),
+    stop: () => call('hub:stop'),
+    disable: () => call('hub:disable'),
+    connectionCode: () => call('hub:connectionCode'),
+    openFirewall: () => call('hub:openFirewall')
+  },
   tasks: {
     list: () => call('tasks:list'),
     dismiss: (id) => call('tasks:dismiss', id)
@@ -95,7 +128,9 @@ const api: Api = {
     settings: (cb) => subscribe('event:settings', cb),
     toast: (cb) => subscribe('event:toast', cb),
     navigate: (cb) => subscribe('event:navigate', cb),
-    update: (cb) => subscribe('event:update', cb)
+    update: (cb) => subscribe('event:update', cb),
+    sync: (cb) => subscribe('event:sync', cb),
+    hub: (cb) => subscribe('event:hub', cb)
   }
 }
 

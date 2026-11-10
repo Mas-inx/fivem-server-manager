@@ -14,6 +14,7 @@ import { ConsoleTab } from './console-tab'
 import { OverviewTab } from './overview-tab'
 import { ResourcesTab } from './resources-tab'
 import { SettingsTab } from './settings-tab'
+import { SyncTab } from './sync-tab'
 import { TxAdminTab } from './txadmin-tab'
 
 const TABS = [
@@ -22,6 +23,7 @@ const TABS = [
   { id: 'txadmin', label: 'txAdmin', txOnly: true },
   { id: 'config', label: 'Config' },
   { id: 'resources', label: 'Resources' },
+  { id: 'sync', label: 'Sync' },
   { id: 'settings', label: 'Settings' }
 ] as const
 
@@ -147,6 +149,7 @@ export function ServerPage() {
         {effective === 'txadmin' && <TxAdminTab key={server.id} server={server} runtime={runtime} />}
         {effective === 'config' && <ConfigTab key={server.id} server={server} runtime={runtime} />}
         {effective === 'resources' && <ResourcesTab key={server.id} server={server} runtime={runtime} />}
+        {effective === 'sync' && <SyncTab key={server.id} server={server} runtime={runtime} />}
         {effective === 'settings' && <SettingsTab key={server.id} server={server} runtime={runtime} />}
       </div>
     </div>

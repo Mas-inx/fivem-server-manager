@@ -64,6 +64,17 @@ class Database {
     return null
   }
 
+  /**
+   * A MariaDB command-line tool such as mariadb-dump: from the managed install first, then from an
+   * installed MariaDB or MySQL on PATH. Null when none is found.
+   */
+  clientTool(kind: 'dump' | 'client'): string | null {
+    const names = kind === 'dump' ? ['mariadb-dump.exe', 'mysqldump.exe'] : ['mariadb.exe', 'mysql.exe']
+    const dirs = [this.binDir(), ...(process.env.PATH ?? '').split(';')].filter((d): d is string => !!d)
+    for (const dir of dirs) for (const n of names) if (existsSync(join(dir, n))) return join(dir, n)
+    return null
+  }
+
   isManagedInstalled(): boolean {
     return this.daemon() !== null && existsSync(join(paths.mariadbData(), 'my.ini'))
   }

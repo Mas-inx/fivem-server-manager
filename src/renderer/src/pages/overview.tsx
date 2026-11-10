@@ -1,4 +1,4 @@
-import { ArrowRight, Database, FolderInput, Plus, Server } from 'lucide-react'
+import { ArrowRight, CloudDownload, Database, FolderInput, Plus, Server } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { formatBytes, formatDuration } from '@shared/format'
@@ -119,6 +119,9 @@ export function OverviewPage() {
         description={`${servers.length} server${servers.length === 1 ? '' : 's'} on this machine`}
         actions={
           <>
+            <Button icon={<CloudDownload size={14} strokeWidth={1.75} />} onClick={() => open('cloneRemote')}>
+              Clone from remote
+            </Button>
             <Button icon={<FolderInput size={14} strokeWidth={1.75} />} onClick={() => open('importServer')}>
               Import
             </Button>

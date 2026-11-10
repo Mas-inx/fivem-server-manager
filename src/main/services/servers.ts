@@ -20,6 +20,7 @@ import { cfgTemplate, ensuredResources, retargetDatabase, setEnsured, syncCfg } 
 import { database } from './database'
 import { suggestPorts } from './ports'
 import { runner } from './runner'
+import { rebasePaths } from '../sync/overrides'
 import { safeResolve, serverFiles, txProfiles, txServerPaths } from './server-files'
 import { applyShared, syncTxAdmins } from './shared'
 
@@ -78,32 +79,16 @@ async function copyTree(src: string, dest: string, onProgress: (copied: number) 
 const toSlash = (p: string): string => p.replace(/\\/g, '/').replace(/\/+$/, '')
 
 /** Rewrites absolute paths in txAdmin's config so a copied txData points at its own server data. */
-async function rebaseTxData(txData: string, fromRoot: string, toRoot: string): Promise<void> {
-  const from = toSlash(fromRoot).toLowerCase()
-  const rewrite = (value: unknown): unknown => {
-    if (typeof value === 'string') {
-      const s = toSlash(value)
-      if (s.toLowerCase().startsWith(from)) {
-        const rebased = toSlash(toRoot) + s.slice(from.length)
-        return value.includes('\\') ? rebased.replace(/\//g, '\\') : rebased + (value.endsWith('/') ? '/' : '')
-      }
-      return value
-    }
-    if (Array.isArray(value)) return value.map(rewrite)
-    if (value && typeof value === 'object') {
-      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, rewrite(v)]))
-    }
-    return value
-  }
+export async function rebaseTxData(txData: string, fromRoot: string, toRoot: string): Promise<void> {
   for (const profile of await txProfiles(txData)) {
     const file = join(txData, profile, 'config.json')
     const cfg = await readJson<unknown>(file)
-    if (cfg) await writeFileAtomic(file, JSON.stringify(rewrite(cfg), null, 2))
+    if (cfg) await writeFileAtomic(file, JSON.stringify(rebasePaths(cfg, fromRoot, toRoot), null, 2))
   }
 }
 
 /** Writes the values the manager owns (port, slots, key, database) into a standalone server.cfg. */
-async function syncStandaloneCfg(server: ServerConfig): Promise<void> {
+export async function syncStandaloneCfg(server: ServerConfig): Promise<void> {
   if (server.mode !== 'standalone') return
   const files = await serverFiles(server)
   if (!files.cfgPath || !existsSync(files.cfgPath)) return
@@ -172,7 +157,9 @@ class Servers {
         syncedAdmins: [],
         notes: '',
         createdAt: Date.now(),
-        lastStartedAt: null
+        lastStartedAt: null,
+        sync: null,
+        syncState: null
       }
 
       if (input.mode === 'standalone') {
@@ -286,7 +273,9 @@ class Servers {
         syncedAdmins: [],
         notes: '',
         createdAt: Date.now(),
-        lastStartedAt: null
+        lastStartedAt: null,
+        sync: null,
+        syncState: null
       }
       store.addServer(server)
       return server
@@ -358,7 +347,10 @@ class Servers {
         txDataPath,
         autoStart: false,
         createdAt: Date.now(),
-        lastStartedAt: null
+        lastStartedAt: null,
+        // A copy is a new server; it gets its own sync id if it is synced at all.
+        sync: null,
+        syncState: null
       }
 
       if (src.database && databaseName && databaseName !== src.database) {

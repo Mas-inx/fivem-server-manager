@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { HashRouter, Route, Routes, useNavigate } from 'react-router'
 import { CommandPalette } from '@/components/command-palette'
 import { AdminDialog } from '@/components/dialogs/admin'
+import { CloneRemoteDialog } from '@/components/dialogs/clone-remote'
 import { DeleteServerDialog } from '@/components/dialogs/delete-server'
 import { DuplicateServerDialog } from '@/components/dialogs/duplicate-server'
 import { ImportServerDialog } from '@/components/dialogs/import-server'
@@ -62,6 +63,7 @@ function Shell() {
       <NewServerDialog />
       <ImportServerDialog />
       <DuplicateServerDialog />
+      <CloneRemoteDialog />
       <DeleteServerDialog />
       <AdminDialog />
       <CommandPalette />

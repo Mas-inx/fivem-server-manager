@@ -58,8 +58,11 @@ export interface CfgSync {
 
 const isComment = (line: string): boolean => /^\s*(#|\/\/)/.test(line)
 
-/** Applies managed values to an existing config, inserting lines only where it makes sense. */
-export function syncCfg(content: string, sync: CfgSync): string {
+/**
+ * Applies managed values to an existing config, inserting lines only where it makes sense.
+ * With `insertMissing: false` only lines already in the config are rewritten.
+ */
+export function syncCfg(content: string, sync: CfgSync, { insertMissing = true }: { insertMissing?: boolean } = {}): string {
   const eol = content.includes('\r\n') ? '\r\n' : '\n'
   const lines = content.split(/\r?\n/)
   let endpoints = false
@@ -100,6 +103,7 @@ export function syncCfg(content: string, sync: CfgSync): string {
     return line
   })
 
+  if (!insertMissing) return out.join(eol)
   const head: string[] = []
   if (sync.gamePort && !endpoints) {
     head.push(`endpoint_add_tcp "0.0.0.0:${sync.gamePort}"`, `endpoint_add_udp "0.0.0.0:${sync.gamePort}"`, '')
